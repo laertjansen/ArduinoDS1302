@@ -1,0 +1,100 @@
+#include <Wire.h>
+#include <DS1302.h>
+#include <LiquidCrystal.h>
+
+int rs = 7;
+int en = 8;
+int d4 = 9;
+int d5 = 10;
+int d6 = 11;
+int d7 = 12;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+int led_Blue = 4;
+int led_Red = 13;
+const int buzzer = 3;
+
+const int CE_PIN = 6;
+const int IO_PIN = 5;
+const int SCLK_PIN = 2;
+
+DS1302 rtc(CE_PIN, IO_PIN, SCLK_PIN);
+
+unsigned long previousMillis = 0;
+const unsigned long interval = 2000;
+
+void setup() {
+  Serial.begin(9600);
+  lcd.begin(16, 2);
+
+  pinMode(led_Blue, OUTPUT);
+  pinMode(led_Red, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+
+  rtc.halt(false);
+  rtc.writeProtect(false);
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+
+    digitalWrite(led_Blue, HIGH);
+    delay(100);
+    digitalWrite(led_Blue, LOW);
+
+    digitalWrite(led_Red, HIGH);
+    delay(50);
+    digitalWrite(led_Red, LOW);
+
+    int pitch = random(500, 800);
+    tone(buzzer, pitch, 2);
+    delay(100);
+    noTone(buzzer);
+  }
+
+  Time t = rtc.getTime();
+
+  String period = "AM";
+  int hour = t.hour;
+  if (t.hour >= 12) {
+    period = "PM";
+    if (t.hour > 12) hour = t.hour - 12;
+  } else if (t.hour == 0) {
+    hour = 12;
+  }
+
+  lcd.setCursor(0, 0);
+  lcd.print("Time ");
+  if (hour < 10) lcd.print("0");
+  lcd.print(hour);
+  lcd.print(":");
+  if (t.min < 10) lcd.print("0");
+  lcd.print(t.min);
+  lcd.print(":");
+  if (t.sec < 10) lcd.print("0");
+  lcd.print(t.sec);
+  lcd.print(" ");
+  lcd.print(period);
+
+  lcd.setCursor(0, 1);
+  lcd.print("Date ");
+  if (t.date < 10) lcd.print("0");
+  lcd.print(t.date);
+  lcd.print("/");
+  if (t.mon < 10) lcd.print("0");
+  lcd.print(t.mon);
+  lcd.print("/");
+  lcd.print(t.year);
+
+  Serial.print("Time: ");
+  Serial.print(rtc.getTimeStr());
+  Serial.print(" | Date: ");
+  Serial.print(rtc.getDateStr());
+  Serial.print(" | DOW: ");
+  Serial.println(rtc.getDOWStr());
+
+  delay(200);
+}
